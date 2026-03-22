@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Capability Radar — Riverflex</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #050a12; overflow-x: hidden; }
+.fade-in { animation: fadeIn 0.6s ease forwards; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes borderPulse { 0%,100%{border-color:rgba(0,240,255,0.12)} 50%{border-color:rgba(0,240,255,0.3)} }
+@keyframes textFlicker { 0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.6} 94%{opacity:1} 97%{opacity:0.7} 98%{opacity:1} }
+@keyframes scanSweep { 0%{left:-50%} 100%{left:150%} }
+@keyframes dataRise { 0%{transform:translateY(110vh);opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{transform:translateY(-10vh);opacity:0} }
+button:hover { filter: brightness(1.3); }
+button:active { transform: scale(0.98); }
+input:focus { outline: none; border-color: #00f0ff !important; box-shadow: 0 0 15px rgba(0,240,255,0.15); }
+::selection { background: rgba(0,240,255,0.2); }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,240,255,0.2); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const capabilities = [
+  {
+    id: "theory", name: "Theory Knowledge", icon: "\u{1F9E0}",
+    description: "Understanding AI, ML, LLMs, RAG, MCP, model landscape, and where AI fits in Riverflex\u2019s work and client strategy.",
+    levels: [
+      { label: "Awareness", desc: "I get AI 101 basics \u2014 what AI, ML, and LLMs are, how training works, and where AI fits in Riverflex\u2019s work" },
+      { label: "Beginner", desc: "I understand AI 202 concepts including RAG and MCP, and I know why context and data quality matter" },
+      { label: "Practitioner", desc: "I understand the full model landscape \u2014 foundation, agentic, workflow, and SaaS-embedded AI tools" },
+      { label: "Strategic Lead", desc: "I shape Riverflex\u2019s AI strategy using model landscape insights to guide priorities and investments" },
+      { label: "Technical Expert", desc: "I evaluate and optimise model architectures like GPT-4, Claude, Cohere, and open-source options for privacy, latency, and cost" }
+    ],
+    nextSteps: [
+      ["Binge the Udemy 'Beginner\u2019s Guide to AI & ML' \u2014 it\u2019s 1.5hrs and you\u2019ll feel 10x smarter after \u{1F9C3}", "Ask a colleague to explain one AI concept you don\u2019t get yet \u2014 buy them a coffee for it \u2615"],
+      ["Deep-dive into RAG and MCP \u2014 ask SpecOps for a 15-min explainer or check the Notion AI wiki \u{1F50D}", "Try explaining context windows to a non-techy friend. If they get it, you\u2019ve levelled up \u{1F3AF}"],
+      ["Map out 5 AI tools your current client uses and classify them (foundation vs SaaS-embedded vs agentic) \u{1F5FA}\uFE0F", "Join a SpecOps lunch & learn and ask annoyingly good questions \u{1F355}"],
+      ["Write a 1-pager on Riverflex\u2019s AI strategy POV \u2014 share it with the team for feedback \u{1F4DD}", "Lead an internal session comparing model architectures for a real client scenario \u{1F3D7}\uFE0F"],
+      ["You\u2019re basically an AI professor \u2014 mentor others! Run a masterclass for the team \u{1F393}", "Stay sharp: pick one new model release per month to evaluate and share findings \u{1F52C}"]
+    ]
+  },
+  {
+    id: "prompting", name: "Prompting / Context Engineering", icon: "\u270D\uFE0F",
+    description: "Writing effective prompts, engineering context (role, tone, data), and applying prompt frameworks across Consulting, T&C, and Finance use cases.",
+    levels: [
+      { label: "Awareness", desc: "I use simple prompts to summarise or generate content and I recognise how phrasing affects results" },
+      { label: "Beginner", desc: "I write structured prompts and engineer basic context such as role, tone, and data for consistent outputs" },
+      { label: "Practitioner", desc: "I apply prompt and context frameworks to Riverflex use cases across Consulting, T&C, and Finance, iterating for better results" },
+      { label: "Strategic Lead", desc: "I define best practices for prompt and context use across teams and embed them into Riverflex workflows" },
+      { label: "Technical Expert", desc: "I implement prompt and context standards in systems to ensure scalability, reuse, and performance alignment" }
+    ],
+    nextSteps: [
+      ["Try rewriting your last ChatGPT prompt 3 different ways and compare outputs \u2014 it\u2019s like a mini science experiment \u{1F9EA}", "Read Anthropic\u2019s prompt engineering guide (docs.anthropic.com) \u2014 it\u2019s surprisingly fun \u{1F4D6}"],
+      ["Add role + tone + format to every prompt this week. Notice the difference? You will \u{1F3AD}", "Build a 'prompt of the week' habit \u2014 save your best ones in a Notion page \u{1F4BE}"],
+      ["Create a prompt template for one recurring Riverflex task (status updates, interview guides, proposals) and share it \u{1F4CB}", "Pair up with someone from a different team and swap prompt frameworks \u2014 cross-pollination is magic \u2728"],
+      ["Document 5 reusable prompt patterns and get them added to the team wiki \u{1F4DA}", "Run a 'Prompt Roast' session \u2014 team brings their worst prompts, you help fix them live \u{1F525}"],
+      ["Build a system-level prompt library that plugs into Riverflex\u2019s tools \u{1F3D7}\uFE0F", "Benchmark prompt performance across models \u2014 track accuracy, speed, and cost like a pro \u{1F4CA}"]
+    ]
+  },
+  {
+    id: "workflows", name: "Workflows / Automation", icon: "\u26A1",
+    description: "Building AI-powered workflows and automations \u2014 from simple productivity tools to multi-agent systems and automated data pipelines.",
+    levels: [
+      { label: "Awareness", desc: "I use AI productivity tools for summarisation, transcription, and analysis" },
+      { label: "Beginner", desc: "I build simple no-code automations using tools like Power Automate" },
+      { label: "Practitioner", desc: "I design low-code workflows using n8n, LangChain, with iterative logic" },
+      { label: "Strategic Lead", desc: "I create multi-team AI workflows that streamline operations and improve collaboration" },
+      { label: "Technical Expert", desc: "I build and maintain multi-agent systems and automated data pipelines for continuous feedback and integration" }
+    ],
+    nextSteps: [
+      ["Pick ONE repetitive task you do every week and find an AI tool to speed it up \u2014 start small, win big \u{1F3C6}", "Try Copilot or NotebookLM for your next meeting summary \u2014 let the robots take notes \u{1F916}"],
+      ["Build your first Power Automate flow \u2014 even if it just sends you a daily motivational quote, it counts \u{1F4AA}", "Automate one painful email/reporting workflow and tell the team about it \u{1F4E3}"],
+      ["Pick up n8n or LangChain and build a workflow with at least 3 steps and a conditional branch \u{1F33F}", "Prototype a workflow for a real client pain point \u2014 bring it to the next RiverHacks \u{1F680}"],
+      ["Design a cross-team automation that connects at least 2 departments or data sources \u{1F517}", "Document your best workflow patterns so others can copy-paste their way to glory \u{1F4CB}"],
+      ["Architect a multi-agent system \u2014 make the bots talk to each other so humans don\u2019t have to \u{1F91D}", "Build monitoring dashboards for your pipelines \u2014 if it breaks at 3am, you want to know \u{1F514}"]
+    ]
+  },
+  {
+    id: "product-dev", name: "Product Development", icon: "\u{1F6E0}\uFE0F",
+    description: "Identifying where AI adds value, defining requirements, managing AI product backlogs, and leading AI product architecture and delivery.",
+    levels: [
+      { label: "Awareness", desc: "I can identify where AI can add value and what an AI-enabled solution might look like" },
+      { label: "Beginner", desc: "I define requirements and draft basic business cases and ROI estimates for AI solutions" },
+      { label: "Practitioner", desc: "I manage AI backlogs, prioritise features, and deliver improvements based on user feedback" },
+      { label: "Strategic Lead", desc: "I shape AI product strategy to drive measurable business outcomes and return on investment" },
+      { label: "Technical Expert", desc: "I lead AI product architecture and delivery, ensuring scalability, reliability, and technical excellence" }
+    ],
+    nextSteps: [
+      ["Next time you spot a clunky process, sketch what an AI-powered version could look like \u2014 napkin drawings count \u{1F37D}\uFE0F", "Ask your project lead: 'where do we lose the most time?' \u2014 that\u2019s probably an AI opportunity \u{1F4A1}"],
+      ["Write a mini business case for an AI feature on your current project \u2014 even 1 page is great practice \u{1F4C4}", "Learn to estimate ROI for AI: savings = (time saved \u00D7 hourly rate) - tool cost. Simple maths, big impact \u{1F9EE}"],
+      ["Own a small AI feature backlog \u2014 prioritise by impact and feasibility, ship something, learn from feedback \u{1F6A2}", "Run a user feedback session on an AI feature and turn insights into backlog items \u{1F3AF}"],
+      ["Define success metrics for an AI product and present the business case to leadership \u{1F4CA}", "Connect AI product outcomes to actual business KPIs \u2014 revenue, NPS, time-to-delivery \u{1F4B0}"],
+      ["Architect an AI product with proper scalability, monitoring, and fallback plans \u{1F3D7}\uFE0F", "Mentor a junior on AI product thinking \u2014 teaching is the ultimate level-up \u{1F393}"]
+    ]
+  },
+  {
+    id: "evaluation", name: "Evaluation / Continuous Improvement", icon: "\u{1F50D}",
+    description: "Assessing AI output quality, building evaluation loops, co-developing governance frameworks, and implementing monitoring and bias testing systems.",
+    levels: [
+      { label: "Awareness", desc: "I recognise that AI outputs may be wrong and I check for bias or hallucination" },
+      { label: "Beginner", desc: "I define success criteria such as accuracy, relevance, and tone, and benchmark outputs manually" },
+      { label: "Practitioner", desc: "I build evaluation loops using error analysis, unit testing, LLM-as-a-judge, and feedback mechanisms" },
+      { label: "Strategic Lead", desc: "I co-develop evaluation and governance frameworks with technical teams to ensure ethical and compliant use" },
+      { label: "Technical Expert", desc: "I implement monitoring and evaluation systems such as bias testing, automated QA pipelines, and performance dashboards" }
+    ],
+    nextSteps: [
+      ["Start fact-checking every AI output before you use it \u2014 build the habit of healthy scepticism \u{1F575}\uFE0F", "Keep a 'hallucination journal' for one week \u2014 note every time AI gets something wrong \u{1F4D3}"],
+      ["Create a simple scorecard (accuracy, relevance, tone) and rate AI outputs for one project task \u2705", "Compare outputs from 2 different AI models on the same prompt \u2014 who wins? \u{1F3C5}"],
+      ["Set up an eval loop for one AI workflow: input \u2192 output \u2192 human review \u2192 feedback \u2192 improve \u{1F504}", "Try LLM-as-a-judge: have one model evaluate another\u2019s output. It\u2019s inception for AI \u{1F3AC}"],
+      ["Draft a lightweight AI governance framework for your team \u2014 even a 1-pager creates massive value \u{1F4DC}", "Run a 'red team' session: try to break an AI workflow and document what you find \u{1F534}"],
+      ["Build an automated QA pipeline that catches issues before humans do \u{1F916}", "Create a performance dashboard tracking accuracy, latency, and cost across AI tools \u{1F4C8}"]
+    ]
+  },
+  {
+    id: "change-mgmt", name: "AI Change Management", icon: "\u{1F680}",
+    description: "Driving AI adoption in organisations \u2014 RiverLabs training, RiverHacks hackathons, managing resistance, and designing intelligent transformation programmes.",
+    levels: [
+      { label: "Awareness", desc: "I understand that AI adoption requires change management and I can explain why user adoption matters" },
+      { label: "Beginner", desc: "I support AI training logistics, help prepare RiverLabs materials, and track engagement metrics" },
+      { label: "Practitioner", desc: "I co-facilitate RiverLabs/RiverHacks sessions, support change champion networks, and design feedback loops" },
+      { label: "Strategic Lead", desc: "I design and lead end-to-end AI adoption programmes (Discover \u2192 Define \u2192 Design \u2192 Deliver) for clients" },
+      { label: "Technical Expert", desc: "I architect AI transformation programmes at org level \u2014 learning velocity strategies, culture change, and scalable adoption systems" }
+    ],
+    nextSteps: [
+      ["Read one case study of how a company rolled out AI to their team \u2014 note what worked and what didn\u2019t \u{1F4D6}", "Ask someone who resisted AI at first what changed their mind \u2014 the answer is always gold \u{1F947}"],
+      ["Volunteer to help prep the next RiverLabs session \u2014 logistics is where the learning happens \u{1F3AA}", "Create a simple engagement tracker for AI tool adoption on your team \u{1F4CB}"],
+      ["Co-facilitate a RiverLabs or RiverHacks session \u2014 nothing builds confidence like doing it live \u{1F3A4}", "Design a feedback loop template that any project can reuse for AI adoption tracking \u{1F504}"],
+      ["Design a full Discover \u2192 Define \u2192 Design \u2192 Deliver programme for a client\u2019s AI transformation \u{1F5FA}\uFE0F", "Build a change champion playbook and test it with at least 2 teams \u{1F4DA}"],
+      ["Create a scalable AI adoption framework that works across industries and org sizes \u{1F30D}", "Publish a thought leadership piece on human-centric AI transformation \u2014 put Riverflex on the map \u2728"]
+    ]
+  }
+];
+
+const levelLabels = ["Awareness", "Beginner", "Practitioner", "Strategic Lead", "Technical Expert"];
+
+const getProfile = (avg) => {
+  if (avg >= 4.5) return { label: "COMMANDER", rank: "TECHNICAL EXPERT", color: "#ff2a6d", glow: "#ff2a6d" };
+  if (avg >= 3.5) return { label: "OPERATIVE", rank: "STRATEGIC LEAD", color: "#d946ef", glow: "#d946ef" };
+  if (avg >= 2.5) return { label: "SPECIALIST", rank: "PRACTITIONER", color: "#00f0ff", glow: "#00f0ff" };
+  if (avg >= 1.5) return { label: "CADET", rank: "BEGINNER", color: "#05d9e8", glow: "#05d9e8" };
+  return { label: "INITIATE", rank: "AWARENESS", color: "#01ffc3", glow: "#01ffc3" };
+};
+
+const C = {
+  bg: "#050a12", panel: "rgba(0,240,255,0.03)", border: "rgba(0,240,255,0.12)",
+  borderHi: "rgba(0,240,255,0.35)", cyan: "#00f0ff", pink: "#ff2a6d",
+  purple: "#d946ef", green: "#01ffc3", amber: "#ffb800",
+  text: "#c0e8ff", textDim: "rgba(192,232,255,0.4)", textMid: "rgba(192,232,255,0.65)",
+};
+
+const SciFiBg = () => (
+  React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" } },
+    React.createElement("div", { style: { position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 0%, rgba(0,240,255,0.06) 0%, transparent 60%)" } }),
+    React.createElement("div", { style: { position: "absolute", inset: 0, background: "radial-gradient(ellipse at 80% 100%, rgba(255,42,109,0.04) 0%, transparent 50%)" } }),
+    React.createElement("div", { style: { position: "absolute", inset: 0, opacity: 0.03, backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,240,255,0.5) 2px, rgba(0,240,255,0.5) 3px)", backgroundSize: "100% 4px" } }),
+    React.createElement("div", { style: { position: "absolute", inset: 0, opacity: 0.04, backgroundImage: "linear-gradient(rgba(0,240,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(0,240,255,0.8) 1px, transparent 1px)", backgroundSize: "80px 80px" } }),
+    React.createElement("div", { style: { position: "absolute", top: 0, left: "-100%", width: "50%", height: "100%", background: "linear-gradient(90deg, transparent, rgba(0,240,255,0.03), transparent)", animation: "scanSweep 8s linear infinite" } })
+  )
+);
+
+const HexFrame = ({ children, style, highlight = false }) => {
+  const bc = highlight ? C.borderHi : C.border;
+  const corners = [{ top: -1, left: -1 }, { top: -1, right: -1 }, { bottom: -1, left: -1 }, { bottom: -1, right: -1 }];
+  return React.createElement("div", { style: { position: "relative", background: C.panel, border: `1px solid ${bc}`, borderRadius: 4, boxShadow: highlight ? `0 0 20px rgba(0,240,255,0.08), inset 0 0 30px rgba(0,240,255,0.03)` : `inset 0 0 30px rgba(0,240,255,0.02)`, ...style } },
+    corners.map((pos, i) => React.createElement("div", { key: i, style: { position: "absolute", ...pos, width: 12, height: 12, borderTop: pos.top !== undefined ? `2px solid ${C.cyan}` : "none", borderBottom: pos.bottom !== undefined ? `2px solid ${C.cyan}` : "none", borderLeft: pos.left !== undefined ? `2px solid ${C.cyan}` : "none", borderRight: pos.right !== undefined ? `2px solid ${C.cyan}` : "none", zIndex: 1 } })),
+    children
+  );
+};
+
+const RadarChart = ({ scores, size = 340, animate = true }) => {
+  const svgRef = useRef(null);
+  const [progress, setProgress] = useState(animate ? 0 : 1);
+
+  useEffect(() => {
+    if (!animate) { setProgress(1); return; }
+    setProgress(0);
+    let start = null;
+    const step = (ts) => { if (!start) start = ts; const p = Math.min((ts - start) / 1500, 1); setProgress(p * p * (3 - 2 * p)); if (p < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }, [animate, scores]);
+
+  useEffect(() => {
+    if (!svgRef.current) return;
+    const svg = d3.select(svgRef.current); svg.selectAll("*").remove();
+    const w = size, h = size, cx = w / 2, cy = h / 2, maxR = Math.min(w, h) / 2 - 55;
+    const n = capabilities.length, angleSlice = (2 * Math.PI) / n;
+    const defs = svg.append("defs");
+    const filter = defs.append("filter").attr("id", "glow");
+    filter.append("feGaussianBlur").attr("stdDeviation", "3").attr("result", "blur");
+    const fm = filter.append("feMerge"); fm.append("feMergeNode").attr("in", "blur"); fm.append("feMergeNode").attr("in", "SourceGraphic");
+    const g = svg.append("g").attr("transform", `translate(${cx},${cy})`);
+
+    for (let lvl = 1; lvl <= 5; lvl++) {
+      const r = (maxR / 5) * lvl;
+      const pts = Array.from({ length: n }, (_, i) => { const a = angleSlice * i - Math.PI / 2; return `${Math.cos(a) * r},${Math.sin(a) * r}`; }).join(" ");
+      g.append("polygon").attr("points", pts).attr("fill", "none").attr("stroke", lvl === 5 ? "rgba(0,240,255,0.15)" : "rgba(0,240,255,0.06)").attr("stroke-width", lvl === 5 ? 1.5 : 0.8);
+    }
+
+    capabilities.forEach((c, i) => {
+      const angle = angleSlice * i - Math.PI / 2;
+      const x2 = Math.cos(angle) * maxR, y2 = Math.sin(angle) * maxR;
+      g.append("line").attr("x1", 0).attr("y1", 0).attr("x2", x2).attr("y2", y2).attr("stroke", "rgba(0,240,255,0.08)").attr("stroke-width", 0.8).attr("stroke-dasharray", "3,3");
+      g.append("circle").attr("cx", x2).attr("cy", y2).attr("r", 2).attr("fill", C.cyan).attr("opacity", 0.4);
+      const lx = Math.cos(angle) * (maxR + 32), ly = Math.sin(angle) * (maxR + 32);
+      const t = g.append("text").attr("x", lx).attr("y", ly).attr("text-anchor", Math.abs(lx) < 5 ? "middle" : lx > 0 ? "start" : "end").attr("dominant-baseline", Math.abs(ly) < 5 ? "middle" : ly > 0 ? "hanging" : "auto").attr("fill", C.textMid).attr("font-size", "9px").attr("font-family", "'JetBrains Mono', monospace").attr("letter-spacing", "0.04em");
+      const words = c.name.split(/[\s/]+/);
+      if (words.length <= 2) t.text(c.name.toUpperCase());
+      else { const mid = Math.ceil(words.length / 2); t.append("tspan").attr("x", lx).attr("dy", "-0.4em").text(words.slice(0, mid).join(" ").toUpperCase()); t.append("tspan").attr("x", lx).attr("dy", "1.2em").text(words.slice(mid).join(" ").toUpperCase()); }
+    });
+
+    const pts = capabilities.map((c, i) => { const val = (scores[c.id] || 0) * progress; const angle = angleSlice * i - Math.PI / 2; const r = (maxR / 5) * val; return [Math.cos(angle) * r, Math.sin(angle) * r]; });
+    const gradId = "radarFill";
+    const gr = defs.append("linearGradient").attr("id", gradId).attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "100%");
+    gr.append("stop").attr("offset", "0%").attr("stop-color", "#00f0ff"); gr.append("stop").attr("offset", "50%").attr("stop-color", "#d946ef"); gr.append("stop").attr("offset", "100%").attr("stop-color", "#ff2a6d");
+    const line = d3.line().x(d => d[0]).y(d => d[1]);
+    const pathData = line([...pts, pts[0]]);
+    g.append("path").attr("d", pathData).attr("fill", "none").attr("stroke", C.cyan).attr("stroke-width", 6).attr("opacity", 0.08).attr("filter", "url(#glow)");
+    g.append("path").attr("d", pathData).attr("fill", `url(#${gradId})`).attr("fill-opacity", 0.12).attr("stroke", `url(#${gradId})`).attr("stroke-width", 2).attr("stroke-opacity", 0.85).attr("filter", "url(#glow)");
+    pts.forEach(p => { g.append("circle").attr("cx", p[0]).attr("cy", p[1]).attr("r", 3.5).attr("fill", C.cyan).attr("stroke", "#050a12").attr("stroke-width", 1.5).attr("filter", "url(#glow)"); });
+    g.append("line").attr("x1", -8).attr("y1", 0).attr("x2", 8).attr("y2", 0).attr("stroke", C.cyan).attr("stroke-width", 0.5).attr("opacity", 0.3);
+    g.append("line").attr("x1", 0).attr("y1", -8).attr("x2", 0).attr("y2", 8).attr("stroke", C.cyan).attr("stroke-width", 0.5).attr("opacity", 0.3);
+    g.append("circle").attr("cx", 0).attr("cy", 0).attr("r", 3).attr("fill", "none").attr("stroke", C.cyan).attr("stroke-width", 0.5).attr("opacity", 0.3);
+  }, [scores, size, progress]);
+
+  return React.createElement("svg", { ref: svgRef, width: size, height: size, style: { overflow: "visible" } });
+};
+
+const DataStream = () => {
+  const [particles] = useState(() => Array.from({ length: 40 }, (_, i) => ({ id: i, x: Math.random() * 100, delay: Math.random() * 4, dur: 1.5 + Math.random() * 2, size: 1 + Math.random() * 2, color: Math.random() > 0.5 ? C.cyan : C.pink, opacity: 0.2 + Math.random() * 0.4 })));
+  return React.createElement("div", { style: { position: "fixed", inset: 0, pointerEvents: "none", zIndex: 50, overflow: "hidden" } },
+    particles.map(p => React.createElement("div", { key: p.id, style: { position: "absolute", left: `${p.x}%`, bottom: -10, width: p.size, height: 10 + Math.random() * 30, borderRadius: 1, background: p.color, opacity: p.opacity, animation: `dataRise ${p.dur}s ${p.delay}s linear forwards` } }))
+  );
+};
+
+const Counter = ({ target, duration = 1200 }) => {
+  const [val, setVal] = useState(0);
+  useEffect(() => { let start = null; const step = (ts) => { if (!start) start = ts; const p = Math.min((ts - start) / duration, 1); setVal(p * target); if (p < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }, [target, duration]);
+  return React.createElement("span", null, val.toFixed(1));
+};
+
+const generatePDF = async (name, scores, avg, profile) => {
+  const w = 595, h = 842;
+  const canvas = document.createElement("canvas");
+  canvas.width = w * 2; canvas.height = h * 2;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(2, 2);
+  ctx.fillStyle = "#050a12"; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = "rgba(0,240,255,0.04)"; ctx.lineWidth = 0.5;
+  for (let x = 0; x < w; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+  for (let y = 0; y < h; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+  ctx.strokeStyle = "rgba(0,240,255,0.2)"; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(30, 60); ctx.lineTo(w - 30, 60); ctx.stroke();
+  ctx.fillStyle = "#00f0ff"; ctx.font = "bold 9px monospace";
+  ctx.fillText("SYS://RIVERFLEX_AI_RADAR", 30, 45);
+  ctx.fillStyle = "rgba(192,232,255,0.3)"; ctx.font = "9px monospace";
+  ctx.fillText(new Date().toLocaleDateString("en-GB"), w - 120, 45);
+  ctx.fillStyle = "#ffffff"; ctx.font = "bold 22px monospace";
+  ctx.fillText(`${(name || "OPERATOR").toUpperCase()}'S READOUT`, 30, 100);
+  ctx.fillStyle = profile.color; ctx.font = "bold 16px monospace";
+  ctx.fillText(`${profile.label} \u2014 ${profile.rank}`, 30, 125);
+  ctx.fillStyle = "rgba(192,232,255,0.5)"; ctx.font = "12px monospace";
+  ctx.fillText(`COMPOSITE SCORE: ${avg.toFixed(1)} / 5.0`, 30, 148);
+
+  const radarCx = w / 2, radarCy = 310, maxR = 120, n = capabilities.length;
+  const angleSlice = (2 * Math.PI) / n;
+  for (let lvl = 1; lvl <= 5; lvl++) {
+    const r = (maxR / 5) * lvl;
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) { const a = angleSlice * (i % n) - Math.PI / 2; const x = radarCx + Math.cos(a) * r, y = radarCy + Math.sin(a) * r; i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+    ctx.closePath(); ctx.strokeStyle = lvl === 5 ? "rgba(0,240,255,0.2)" : "rgba(0,240,255,0.08)"; ctx.lineWidth = 0.8; ctx.stroke();
+  }
+  capabilities.forEach((c, i) => {
+    const a = angleSlice * i - Math.PI / 2;
+    const x2 = radarCx + Math.cos(a) * maxR, y2 = radarCy + Math.sin(a) * maxR;
+    ctx.beginPath(); ctx.moveTo(radarCx, radarCy); ctx.lineTo(x2, y2);
+    ctx.strokeStyle = "rgba(0,240,255,0.1)"; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+    const lx = radarCx + Math.cos(a) * (maxR + 22), ly = radarCy + Math.sin(a) * (maxR + 22);
+    ctx.fillStyle = "rgba(192,232,255,0.6)"; ctx.font = "7px monospace";
+    ctx.textAlign = Math.abs(lx - radarCx) < 5 ? "center" : lx > radarCx ? "left" : "right";
+    ctx.textBaseline = Math.abs(ly - radarCy) < 5 ? "middle" : ly > radarCy ? "top" : "bottom";
+    ctx.fillText(c.name.toUpperCase(), lx, ly);
+  });
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.beginPath();
+  capabilities.forEach((c, i) => { const val = scores[c.id] || 0; const a = angleSlice * i - Math.PI / 2; const r = (maxR / 5) * val; const x = radarCx + Math.cos(a) * r, y = radarCy + Math.sin(a) * r; i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
+  ctx.closePath(); ctx.fillStyle = "rgba(0,240,255,0.12)"; ctx.fill(); ctx.strokeStyle = "#00f0ff"; ctx.lineWidth = 2; ctx.stroke();
+  capabilities.forEach((c, i) => { const val = scores[c.id] || 0; const a = angleSlice * i - Math.PI / 2; const r = (maxR / 5) * val; const x = radarCx + Math.cos(a) * r, y = radarCy + Math.sin(a) * r; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fillStyle = "#00f0ff"; ctx.fill(); });
+
+  let ty = 470;
+  ctx.strokeStyle = "rgba(0,240,255,0.15)"; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(30, ty - 5); ctx.lineTo(w - 30, ty - 5); ctx.stroke();
+  ctx.fillStyle = "#00f0ff"; ctx.font = "bold 9px monospace";
+  ctx.fillText("\u25C6 FULL TELEMETRY", 30, ty + 8); ty += 24;
+  capabilities.forEach(c => {
+    const s = scores[c.id] || 0;
+    ctx.fillStyle = "rgba(192,232,255,0.6)"; ctx.font = "10px monospace";
+    ctx.fillText(`${c.icon} ${c.name}`, 30, ty);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 10px monospace";
+    ctx.fillText(`${s}/5 \u2014 ${levelLabels[s - 1] || "N/A"}`, 380, ty);
+    ctx.fillStyle = "rgba(0,240,255,0.08)"; ctx.fillRect(30, ty + 5, w - 60, 3);
+    const grad = ctx.createLinearGradient(30, 0, 30 + (w - 60) * (s / 5), 0);
+    grad.addColorStop(0, "#00f0ff"); grad.addColorStop(0.5, "#d946ef"); grad.addColorStop(1, "#ff2a6d");
+    ctx.fillStyle = grad; ctx.fillRect(30, ty + 5, (w - 60) * (s / 5), 3);
+    ty += 28;
+  });
+
+  ty += 10;
+  ctx.strokeStyle = "rgba(0,240,255,0.15)"; ctx.beginPath(); ctx.moveTo(30, ty); ctx.lineTo(w - 30, ty); ctx.stroke();
+  ty += 18;
+  ctx.fillStyle = "#ffb800"; ctx.font = "bold 9px monospace";
+  ctx.fillText("\u25C6 NEXT LEVEL-UP ACTIONS", 30, ty); ty += 18;
+  const sorted = capabilities.map(c => ({ ...c, score: scores[c.id] || 0 })).sort((a, b) => a.score - b.score);
+  const gapCaps = sorted.slice(0, 3);
+  gapCaps.forEach(c => {
+    const s = c.score; if (s >= 5) return;
+    const tips = c.nextSteps[s - 1] || c.nextSteps[0];
+    ctx.fillStyle = "rgba(192,232,255,0.5)"; ctx.font = "bold 9px monospace";
+    ctx.fillText(`${c.icon} ${c.name.toUpperCase()} (${s} \u2192 ${s + 1})`, 30, ty); ty += 14;
+    tips.forEach(tip => {
+      const clean = tip.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "").trim();
+      ctx.fillStyle = "rgba(192,232,255,0.4)"; ctx.font = "9px monospace";
+      const words = clean.split(" "); let line = "  \u2192 ";
+      words.forEach(word => { if (ctx.measureText(line + word + " ").width > w - 70) { ctx.fillText(line, 30, ty); ty += 12; line = "     " + word + " "; } else { line += word + " "; } });
+      if (line.trim()) { ctx.fillText(line, 30, ty); ty += 12; }
+    });
+    ty += 6;
+  });
+
+  ctx.strokeStyle = "rgba(0,240,255,0.15)"; ctx.beginPath(); ctx.moveTo(30, h - 30); ctx.lineTo(w - 30, h - 30); ctx.stroke();
+  ctx.fillStyle = "rgba(192,232,255,0.25)"; ctx.font = "8px monospace";
+  ctx.fillText("RIVERFLEX AI CAPABILITY RADAR v4.0 // INTELLIGENCE TRANSFORMATION", 30, h - 16);
+
+  const link = document.createElement("a");
+  link.download = `AI_Radar_${(name || "operator").replace(/\s+/g, "_")}.png`;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+};
+
+function App() {
+  const [step, setStep] = useState(0);
+  const [name, setName] = useState("");
+  const [current, setCurrent] = useState(0);
+  const [scores, setScores] = useState({});
+  const [showData, setShowData] = useState(false);
+  const [chartSize, setChartSize] = useState(340);
+
+  useEffect(() => {
+    const update = () => setChartSize(window.innerWidth < 500 ? Math.min(window.innerWidth - 60, 280) : 340);
+    update(); window.addEventListener("resize", update); return () => window.removeEventListener("resize", update);
+  }, []);
+
+  const goResults = () => { setStep(2); setShowData(true); setTimeout(() => setShowData(false), 3500); };
+  const reset = () => { setStep(0); setCurrent(0); setScores({}); setName(""); };
+
+  const avg = Object.values(scores).length ? Object.values(scores).reduce((a, b) => a + b, 0) / Object.values(scores).length : 0;
+  const profile = getProfile(avg);
+  const sortedAll = capabilities.map(c => ({ ...c, score: scores[c.id] || 0 })).sort((a, b) => b.score - a.score);
+  const strengths = sortedAll.slice(0, 2);
+  const gaps = sortedAll.slice(-2).reverse();
+
+  const mono = "'JetBrains Mono', 'Fira Code', 'Courier New', monospace";
+  const btnPrimary = { padding: "14px 32px", borderRadius: 2, fontWeight: 700, fontSize: 12, cursor: "pointer", border: `1px solid ${C.cyan}`, transition: "all 0.2s", fontFamily: mono, textTransform: "uppercase", letterSpacing: "0.12em", background: "rgba(0,240,255,0.08)", color: C.cyan, boxShadow: `0 0 20px rgba(0,240,255,0.15), inset 0 0 20px rgba(0,240,255,0.05)` };
+  const btnSecondary = { ...btnPrimary, background: "rgba(255,42,109,0.06)", color: C.pink, border: `1px solid rgba(255,42,109,0.3)`, boxShadow: `0 0 15px rgba(255,42,109,0.1)` };
+  const btnGold = { ...btnPrimary, background: "rgba(255,184,0,0.06)", color: C.amber, border: `1px solid rgba(255,184,0,0.3)`, boxShadow: `0 0 15px rgba(255,184,0,0.1)` };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: mono, position: "relative", overflow: "hidden" }}>
+      <SciFiBg />
+      {showData && <DataStream />}
+
+      <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 10, padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.border}`, background: "rgba(5,10,18,0.8)", backdropFilter: "blur(10px)" }}>
+        <span style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.2em" }}>SYS://RIVERFLEX_AI_RADAR</span>
+        <span style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.1em", animation: "textFlicker 4s infinite" }}>{"\u25CF"} ONLINE</span>
+      </div>
+
+      <div style={{ position: "relative", zIndex: 1, maxWidth: 820, margin: "0 auto", padding: "60px 20px 40px", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+
+        {step === 0 && (
+          <div className="fade-in" style={{ textAlign: "center", width: "100%" }}>
+            <div style={{ width: 80, height: 80, margin: "0 auto 24px", borderRadius: "50%", border: `1px solid ${C.cyan}`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 0 40px rgba(0,240,255,0.15), inset 0 0 20px rgba(0,240,255,0.05)`, animation: "borderPulse 3s ease-in-out infinite" }}>
+              <span style={{ fontSize: 32 }}>{"\u25C7"}</span>
+            </div>
+            <div style={{ fontSize: 10, color: C.cyan, letterSpacing: "0.3em", marginBottom: 12 }}>// INITIALIZING DIAGNOSTIC PROTOCOL</div>
+            <h1 style={{ fontSize: "clamp(26px, 5vw, 44px)", fontWeight: 800, letterSpacing: "-0.02em", color: "#fff", marginBottom: 8, animation: "textFlicker 5s infinite" }}>AI CAPABILITY RADAR</h1>
+            <p style={{ color: C.textDim, fontSize: 12, marginBottom: 32, lineHeight: 1.8, letterSpacing: "0.05em", maxWidth: 520, margin: "0 auto 32px" }}>
+              ASSESS YOUR AI PROFICIENCY ACROSS 6 DIMENSIONS {"\u25B8"} FROM AWARENESS TO EXPERT {"\u25B8"} GET YOUR PERSONALISED LEVEL-UP PLAN
+            </p>
+            <HexFrame style={{ maxWidth: 440, margin: "0 auto 24px", padding: 20 }}>
+              <div style={{ fontSize: 9, color: C.textDim, letterSpacing: "0.2em", marginBottom: 8 }}>OPERATOR ID</div>
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name..." style={{ width: "100%", background: "rgba(0,240,255,0.03)", border: `1px solid ${C.border}`, borderRadius: 2, padding: "10px 14px", color: C.text, fontSize: 13, fontFamily: mono, transition: "all 0.2s", letterSpacing: "0.05em" }} />
+            </HexFrame>
+            <button style={btnPrimary} onClick={() => setStep(1)}>{"\u25B6"} INITIATE SCAN</button>
+            <p style={{ marginTop: 24, color: C.textDim, fontSize: 10, letterSpacing: "0.15em" }}>6 CAPABILITY VECTORS {"\u25B8"} 5 LEVELS EACH {"\u25B8"} ~3 MIN</p>
+          </div>
+        )}
+
+        {step === 1 && (
+          <div className="fade-in" key={current} style={{ width: "100%" }}>
+            <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 24 }}>
+              {capabilities.map((_, i) => (
+                <div key={i} style={{ width: 44, height: 3, borderRadius: 1, background: i < current ? C.cyan : i === current ? C.pink : "rgba(0,240,255,0.1)", boxShadow: i === current ? `0 0 8px ${C.pink}` : i < current ? `0 0 6px rgba(0,240,255,0.3)` : "none", transition: "all 0.3s" }} />
+              ))}
+            </div>
+            <div style={{ textAlign: "center", marginBottom: 16, color: C.textDim, fontSize: 10, letterSpacing: "0.2em" }}>VECTOR {current + 1}/{capabilities.length} {"\u25B8"} SCANNING</div>
+
+            <HexFrame highlight style={{ padding: "28px 22px", maxWidth: 620, margin: "0 auto" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${C.border}`, background: "rgba(0,240,255,0.04)", fontSize: 22 }}>{capabilities[current].icon}</div>
+                <h2 style={{ fontSize: 17, fontWeight: 700, letterSpacing: "0.02em", color: "#fff" }}>{capabilities[current].name}</h2>
+              </div>
+              <p style={{ color: C.textDim, fontSize: 11, lineHeight: 1.7, marginBottom: 20 }}>{capabilities[current].description}</p>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {capabilities[current].levels.map((l, idx) => {
+                  const val = idx + 1;
+                  const selected = scores[capabilities[current].id] === val;
+                  const colors = [C.cyan, C.green, "#00f0ff", C.purple, C.pink];
+                  const barColor = selected ? colors[idx] : "transparent";
+                  return (
+                    <div key={val} onClick={() => setScores(s => ({ ...s, [capabilities[current].id]: val }))} style={{ padding: "10px 14px", borderRadius: 2, cursor: "pointer", display: "flex", alignItems: "flex-start", gap: 12, background: selected ? "rgba(0,240,255,0.06)" : "rgba(0,240,255,0.01)", border: `1px solid ${selected ? barColor : "rgba(0,240,255,0.06)"}`, boxShadow: selected ? `0 0 15px ${barColor}20, inset 0 0 20px ${barColor}08` : "none", transition: "all 0.2s ease", position: "relative", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, background: selected ? barColor : "transparent", transition: "all 0.2s" }} />
+                      <div style={{ width: 28, height: 28, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "center", border: `1px solid ${selected ? barColor : "rgba(0,240,255,0.1)"}`, background: selected ? `${barColor}15` : "transparent", color: selected ? barColor : C.textDim, fontWeight: 700, fontSize: 12, flexShrink: 0, fontFamily: mono }}>{val}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: selected ? "#fff" : C.textMid, marginBottom: 2 }}>{l.label}</div>
+                        <div style={{ fontSize: 10.5, color: selected ? C.textMid : C.textDim, lineHeight: 1.6 }}>{l.desc}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </HexFrame>
+
+            <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 24 }}>
+              {current > 0 && <button style={btnSecondary} onClick={() => setCurrent(c => c - 1)}>{"\u25C0"} PREV</button>}
+              <button style={{ ...btnPrimary, opacity: scores[capabilities[current].id] ? 1 : 0.3, pointerEvents: scores[capabilities[current].id] ? "auto" : "none" }} onClick={() => { if (current < capabilities.length - 1) setCurrent(c => c + 1); else goResults(); }}>
+                {current === capabilities.length - 1 ? "\u25B6 COMPILE RESULTS" : "NEXT \u25B6"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="fade-in" style={{ width: "100%", textAlign: "center" }}>
+            <div style={{ fontSize: 10, color: C.cyan, letterSpacing: "0.3em", marginBottom: 8 }}>// DIAGNOSTIC COMPLETE</div>
+            <h1 style={{ fontSize: "clamp(22px, 4vw, 32px)", fontWeight: 800, color: "#fff", marginBottom: 4, letterSpacing: "0.05em" }}>
+              {name ? `${name.toUpperCase()}'S` : "OPERATOR"} READOUT
+            </h1>
+            <div style={{ marginBottom: 24 }} />
+
+            <HexFrame highlight style={{ display: "inline-block", padding: 20, marginBottom: 24 }}>
+              <RadarChart scores={scores} size={chartSize} animate={true} />
+            </HexFrame>
+
+            <HexFrame style={{ padding: 24, maxWidth: 560, margin: "0 auto 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 28, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.2em", marginBottom: 4 }}>COMPOSITE SCORE</div>
+                <div style={{ fontSize: 52, fontWeight: 800, color: profile.color, textShadow: `0 0 30px ${profile.glow}40` }}><Counter target={avg} duration={1400} /></div>
+                <div style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.1em" }}>/ 5.0</div>
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontSize: 10, color: C.textDim, letterSpacing: "0.2em", marginBottom: 6 }}>CLASSIFICATION</div>
+                <div style={{ padding: "10px 20px", borderRadius: 2, border: `1px solid ${profile.color}50`, background: `${profile.color}08`, boxShadow: `0 0 20px ${profile.color}15` }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: profile.color, letterSpacing: "0.1em" }}>{profile.label}</div>
+                  <div style={{ fontSize: 10, color: profile.color, opacity: 0.6, letterSpacing: "0.2em" }}>{profile.rank}</div>
+                </div>
+              </div>
+            </HexFrame>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, maxWidth: 560, margin: "0 auto 20px" }}>
+              <HexFrame style={{ padding: 18, textAlign: "left" }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: C.green, letterSpacing: "0.2em", marginBottom: 14 }}>{"\u25C6"} PEAK VECTORS</div>
+                {strengths.map(s => (<div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}><span style={{ fontSize: 11, color: C.textMid }}>{s.icon} {s.name}</span><span style={{ fontWeight: 700, color: C.green, fontSize: 14, textShadow: `0 0 10px ${C.green}40` }}>{s.score}</span></div>))}
+              </HexFrame>
+              <HexFrame style={{ padding: 18, textAlign: "left" }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: C.amber, letterSpacing: "0.2em", marginBottom: 14 }}>{"\u25C6"} WEAK SECTORS</div>
+                {gaps.map(s => (<div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}><span style={{ fontSize: 11, color: C.textMid }}>{s.icon} {s.name}</span><span style={{ fontWeight: 700, color: C.amber, fontSize: 14, textShadow: `0 0 10px ${C.amber}40` }}>{s.score}</span></div>))}
+              </HexFrame>
+            </div>
+
+            <HexFrame style={{ padding: 22, maxWidth: 560, margin: "0 auto 20px", textAlign: "left" }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: C.amber, letterSpacing: "0.2em", marginBottom: 16 }}>{"\u25C6"} YOUR LEVEL-UP PLAN {"\u{1F3AE}"}</div>
+              {capabilities.map(c => {
+                const s = scores[c.id] || 0;
+                if (s >= 5) return null;
+                const tips = c.nextSteps[s - 1] || c.nextSteps[0];
+                return (
+                  <div key={c.id} style={{ marginBottom: 18, paddingLeft: 14, borderLeft: `2px solid ${C.amber}30` }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: C.amber, marginBottom: 6, letterSpacing: "0.06em" }}>
+                      {c.icon} {c.name.toUpperCase()} <span style={{ color: C.textDim, fontWeight: 400 }}>({levelLabels[s - 1]} {"\u2192"} {levelLabels[s]})</span>
+                    </div>
+                    {tips.map((tip, i) => (
+                      <div key={i} style={{ fontSize: 11, color: C.textMid, lineHeight: 1.7, marginBottom: 4, paddingLeft: 8 }}>{"\u2192"} {tip}</div>
+                    ))}
+                  </div>
+                );
+              })}
+            </HexFrame>
+
+            <HexFrame style={{ padding: 22, maxWidth: 560, margin: "0 auto 24px", textAlign: "left" }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: C.cyan, letterSpacing: "0.2em", marginBottom: 16 }}>{"\u25C6"} FULL TELEMETRY</div>
+              {capabilities.map(c => {
+                const s = scores[c.id] || 0;
+                return (
+                  <div key={c.id} style={{ marginBottom: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, flexWrap: "wrap", gap: 4 }}>
+                      <span style={{ fontSize: 11, color: C.textMid }}>{c.icon} {c.name}</span>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: C.text, letterSpacing: "0.05em" }}>{s}/5 {"\u25B8"} {(levelLabels[s - 1] || "").toUpperCase()}</span>
+                    </div>
+                    <div style={{ height: 4, borderRadius: 1, background: "rgba(0,240,255,0.06)", position: "relative", overflow: "hidden" }}>
+                      <div style={{ height: "100%", borderRadius: 1, width: `${(s / 5) * 100}%`, background: `linear-gradient(90deg, ${C.cyan}, ${C.purple}, ${C.pink})`, boxShadow: `0 0 8px ${C.cyan}40`, transition: "width 1.2s cubic-bezier(0.16, 1, 0.3, 1)" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </HexFrame>
+
+            <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+              <button style={btnSecondary} onClick={reset}>{"\u25C0"} RESTART</button>
+              <button style={btnGold} onClick={() => generatePDF(name, scores, avg, profile)}>{"\u{1F4C4}"} DOWNLOAD REPORT</button>
+              <button style={btnPrimary} onClick={() => { const data = btoa(JSON.stringify({ name, scores })); navigator.clipboard.writeText(window.location.origin + "?r=" + data); alert("Link copied!"); }}>{"\u25C7"} SHARE LINK</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 10, padding: "8px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: `1px solid ${C.border}`, background: "rgba(5,10,18,0.8)", backdropFilter: "blur(10px)", fontSize: 9, color: C.textDim, letterSpacing: "0.15em" }}>
+        <span>v4.0 // RIVERFLEX_iT</span>
+        <span style={{ animation: "textFlicker 6s infinite" }}>{"\u25C7"} INTELLIGENCE TRANSFORMATION</span>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
