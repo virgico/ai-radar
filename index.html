@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>AI Capability Radar — Riverflex</title>
+<title>AI Competency Radar — Riverflex</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
@@ -251,7 +251,7 @@ const Counter = ({ target, duration = 1200 }) => {
 };
 
 const generatePDF = async (name, scores, avg, profile) => {
-  const w = 595, h = 842;
+  const w = 595, h = 842, margin = 30, maxY = h - 40;
   const canvas = document.createElement("canvas");
   canvas.width = w * 2; canvas.height = h * 2;
   const ctx = canvas.getContext("2d");
@@ -261,19 +261,19 @@ const generatePDF = async (name, scores, avg, profile) => {
   for (let x = 0; x < w; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
   for (let y = 0; y < h; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
   ctx.strokeStyle = "rgba(0,240,255,0.2)"; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(30, 60); ctx.lineTo(w - 30, 60); ctx.stroke();
-  ctx.fillStyle = "#00f0ff"; ctx.font = "bold 9px monospace";
-  ctx.fillText("SYS://RIVERFLEX_AI_RADAR", 30, 45);
-  ctx.fillStyle = "rgba(192,232,255,0.3)"; ctx.font = "9px monospace";
-  ctx.fillText(new Date().toLocaleDateString("en-GB"), w - 120, 45);
-  ctx.fillStyle = "#ffffff"; ctx.font = "bold 22px monospace";
-  ctx.fillText(`${(name || "OPERATOR").toUpperCase()}'S READOUT`, 30, 100);
-  ctx.fillStyle = profile.color; ctx.font = "bold 16px monospace";
-  ctx.fillText(`${profile.label} \u2014 ${profile.rank}`, 30, 125);
-  ctx.fillStyle = "rgba(192,232,255,0.5)"; ctx.font = "12px monospace";
-  ctx.fillText(`COMPOSITE SCORE: ${avg.toFixed(1)} / 5.0`, 30, 148);
+  ctx.beginPath(); ctx.moveTo(margin, 55); ctx.lineTo(w - margin, 55); ctx.stroke();
+  ctx.fillStyle = "#00f0ff"; ctx.font = "bold 8px monospace";
+  ctx.fillText("SYS://RIVERFLEX_AI_RADAR", margin, 42);
+  ctx.fillStyle = "rgba(192,232,255,0.3)"; ctx.font = "8px monospace";
+  ctx.fillText(new Date().toLocaleDateString("en-GB"), w - 110, 42);
+  ctx.fillStyle = "#ffffff"; ctx.font = "bold 18px monospace";
+  ctx.fillText(`${(name || "OPERATOR").toUpperCase()}'S READOUT`, margin, 85);
+  ctx.fillStyle = profile.color; ctx.font = "bold 13px monospace";
+  ctx.fillText(`${profile.label} \u2014 ${profile.rank}`, margin, 105);
+  ctx.fillStyle = "rgba(192,232,255,0.5)"; ctx.font = "11px monospace";
+  ctx.fillText(`COMPOSITE SCORE: ${avg.toFixed(1)} / 5.0`, margin, 124);
 
-  const radarCx = w / 2, radarCy = 310, maxR = 120, n = capabilities.length;
+  const radarCx = w / 2, radarCy = 260, maxR = 100, n = capabilities.length;
   const angleSlice = (2 * Math.PI) / n;
   for (let lvl = 1; lvl <= 5; lvl++) {
     const r = (maxR / 5) * lvl;
@@ -286,8 +286,8 @@ const generatePDF = async (name, scores, avg, profile) => {
     const x2 = radarCx + Math.cos(a) * maxR, y2 = radarCy + Math.sin(a) * maxR;
     ctx.beginPath(); ctx.moveTo(radarCx, radarCy); ctx.lineTo(x2, y2);
     ctx.strokeStyle = "rgba(0,240,255,0.1)"; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
-    const lx = radarCx + Math.cos(a) * (maxR + 22), ly = radarCy + Math.sin(a) * (maxR + 22);
-    ctx.fillStyle = "rgba(192,232,255,0.6)"; ctx.font = "7px monospace";
+    const lx = radarCx + Math.cos(a) * (maxR + 20), ly = radarCy + Math.sin(a) * (maxR + 20);
+    ctx.fillStyle = "rgba(192,232,255,0.6)"; ctx.font = "6.5px monospace";
     ctx.textAlign = Math.abs(lx - radarCx) < 5 ? "center" : lx > radarCx ? "left" : "right";
     ctx.textBaseline = Math.abs(ly - radarCy) < 5 ? "middle" : ly > radarCy ? "top" : "bottom";
     ctx.fillText(c.name.toUpperCase(), lx, ly);
@@ -298,49 +298,52 @@ const generatePDF = async (name, scores, avg, profile) => {
   ctx.closePath(); ctx.fillStyle = "rgba(0,240,255,0.12)"; ctx.fill(); ctx.strokeStyle = "#00f0ff"; ctx.lineWidth = 2; ctx.stroke();
   capabilities.forEach((c, i) => { const val = scores[c.id] || 0; const a = angleSlice * i - Math.PI / 2; const r = (maxR / 5) * val; const x = radarCx + Math.cos(a) * r, y = radarCy + Math.sin(a) * r; ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fillStyle = "#00f0ff"; ctx.fill(); });
 
-  let ty = 470;
+  let ty = 400;
   ctx.strokeStyle = "rgba(0,240,255,0.15)"; ctx.lineWidth = 0.5;
-  ctx.beginPath(); ctx.moveTo(30, ty - 5); ctx.lineTo(w - 30, ty - 5); ctx.stroke();
-  ctx.fillStyle = "#00f0ff"; ctx.font = "bold 9px monospace";
-  ctx.fillText("\u25C6 FULL TELEMETRY", 30, ty + 8); ty += 24;
+  ctx.beginPath(); ctx.moveTo(margin, ty - 5); ctx.lineTo(w - margin, ty - 5); ctx.stroke();
+  ctx.fillStyle = "#00f0ff"; ctx.font = "bold 8px monospace";
+  ctx.fillText("\u25C6 FULL TELEMETRY", margin, ty + 8); ty += 20;
   capabilities.forEach(c => {
+    if (ty > maxY) return;
     const s = scores[c.id] || 0;
-    ctx.fillStyle = "rgba(192,232,255,0.6)"; ctx.font = "10px monospace";
-    ctx.fillText(`${c.icon} ${c.name}`, 30, ty);
-    ctx.fillStyle = "#fff"; ctx.font = "bold 10px monospace";
-    ctx.fillText(`${s}/5 \u2014 ${levelLabels[s - 1] || "N/A"}`, 380, ty);
-    ctx.fillStyle = "rgba(0,240,255,0.08)"; ctx.fillRect(30, ty + 5, w - 60, 3);
-    const grad = ctx.createLinearGradient(30, 0, 30 + (w - 60) * (s / 5), 0);
+    ctx.fillStyle = "rgba(192,232,255,0.6)"; ctx.font = "9px monospace";
+    ctx.fillText(`${c.icon} ${c.name}`, margin, ty);
+    ctx.fillStyle = "#fff"; ctx.font = "bold 9px monospace";
+    ctx.fillText(`${s}/5 \u2014 ${levelLabels[s - 1] || "N/A"}`, 370, ty);
+    ctx.fillStyle = "rgba(0,240,255,0.08)"; ctx.fillRect(margin, ty + 4, w - margin * 2, 3);
+    const grad = ctx.createLinearGradient(margin, 0, margin + (w - margin * 2) * (s / 5), 0);
     grad.addColorStop(0, "#00f0ff"); grad.addColorStop(0.5, "#d946ef"); grad.addColorStop(1, "#ff2a6d");
-    ctx.fillStyle = grad; ctx.fillRect(30, ty + 5, (w - 60) * (s / 5), 3);
-    ty += 28;
+    ctx.fillStyle = grad; ctx.fillRect(margin, ty + 4, (w - margin * 2) * (s / 5), 3);
+    ty += 22;
   });
 
-  ty += 10;
-  ctx.strokeStyle = "rgba(0,240,255,0.15)"; ctx.beginPath(); ctx.moveTo(30, ty); ctx.lineTo(w - 30, ty); ctx.stroke();
-  ty += 18;
-  ctx.fillStyle = "#ffb800"; ctx.font = "bold 9px monospace";
-  ctx.fillText("\u25C6 NEXT LEVEL-UP ACTIONS", 30, ty); ty += 18;
+  ty += 8;
+  ctx.strokeStyle = "rgba(0,240,255,0.15)"; ctx.beginPath(); ctx.moveTo(margin, ty); ctx.lineTo(w - margin, ty); ctx.stroke();
+  ty += 14;
+  ctx.fillStyle = "#ffb800"; ctx.font = "bold 8px monospace";
+  ctx.fillText("\u25C6 NEXT LEVEL-UP ACTIONS", margin, ty); ty += 14;
   const sorted = capabilities.map(c => ({ ...c, score: scores[c.id] || 0 })).sort((a, b) => a.score - b.score);
   const gapCaps = sorted.slice(0, 3);
   gapCaps.forEach(c => {
+    if (ty > maxY) return;
     const s = c.score; if (s >= 5) return;
     const tips = c.nextSteps[s - 1] || c.nextSteps[0];
-    ctx.fillStyle = "rgba(192,232,255,0.5)"; ctx.font = "bold 9px monospace";
-    ctx.fillText(`${c.icon} ${c.name.toUpperCase()} (${s} \u2192 ${s + 1})`, 30, ty); ty += 14;
+    ctx.fillStyle = "rgba(192,232,255,0.5)"; ctx.font = "bold 8px monospace";
+    ctx.fillText(`${c.icon} ${c.name.toUpperCase()} (${s} \u2192 ${s + 1})`, margin, ty); ty += 12;
     tips.forEach(tip => {
+      if (ty > maxY) return;
       const clean = tip.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "").trim();
-      ctx.fillStyle = "rgba(192,232,255,0.4)"; ctx.font = "9px monospace";
+      ctx.fillStyle = "rgba(192,232,255,0.4)"; ctx.font = "8px monospace";
       const words = clean.split(" "); let line = "  \u2192 ";
-      words.forEach(word => { if (ctx.measureText(line + word + " ").width > w - 70) { ctx.fillText(line, 30, ty); ty += 12; line = "     " + word + " "; } else { line += word + " "; } });
-      if (line.trim()) { ctx.fillText(line, 30, ty); ty += 12; }
+      words.forEach(word => { if (ctx.measureText(line + word + " ").width > w - 70) { if (ty <= maxY) { ctx.fillText(line, margin, ty); ty += 10; } line = "     " + word + " "; } else { line += word + " "; } });
+      if (line.trim() && ty <= maxY) { ctx.fillText(line, margin, ty); ty += 10; }
     });
-    ty += 6;
+    ty += 4;
   });
 
-  ctx.strokeStyle = "rgba(0,240,255,0.15)"; ctx.beginPath(); ctx.moveTo(30, h - 30); ctx.lineTo(w - 30, h - 30); ctx.stroke();
-  ctx.fillStyle = "rgba(192,232,255,0.25)"; ctx.font = "8px monospace";
-  ctx.fillText("RIVERFLEX AI CAPABILITY RADAR v4.0 // INTELLIGENCE TRANSFORMATION", 30, h - 16);
+  ctx.strokeStyle = "rgba(0,240,255,0.15)"; ctx.beginPath(); ctx.moveTo(margin, h - 28); ctx.lineTo(w - margin, h - 28); ctx.stroke();
+  ctx.fillStyle = "rgba(192,232,255,0.25)"; ctx.font = "7px monospace";
+  ctx.fillText("RIVERFLEX AI COMPETENCY RADAR // INTELLIGENT TRANSFORMATION", margin, h - 14);
 
   const link = document.createElement("a");
   link.download = `AI_Radar_${(name || "operator").replace(/\s+/g, "_")}.png`;
@@ -393,7 +396,7 @@ function App() {
               <span style={{ fontSize: 32 }}>{"\u25C7"}</span>
             </div>
             <div style={{ fontSize: 10, color: C.cyan, letterSpacing: "0.3em", marginBottom: 12 }}>// INITIALIZING DIAGNOSTIC PROTOCOL</div>
-            <h1 style={{ fontSize: "clamp(26px, 5vw, 44px)", fontWeight: 800, letterSpacing: "-0.02em", color: "#fff", marginBottom: 8, animation: "textFlicker 5s infinite" }}>AI CAPABILITY RADAR</h1>
+            <h1 style={{ fontSize: "clamp(26px, 5vw, 44px)", fontWeight: 800, letterSpacing: "-0.02em", color: "#fff", marginBottom: 8, animation: "textFlicker 5s infinite" }}>AI COMPETENCY RADAR</h1>
             <p style={{ color: C.textDim, fontSize: 12, marginBottom: 32, lineHeight: 1.8, letterSpacing: "0.05em", maxWidth: 520, margin: "0 auto 32px" }}>
               ASSESS YOUR AI PROFICIENCY ACROSS 6 DIMENSIONS {"\u25B8"} FROM AWARENESS TO EXPERT {"\u25B8"} GET YOUR PERSONALISED LEVEL-UP PLAN
             </p>
@@ -402,7 +405,7 @@ function App() {
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name..." style={{ width: "100%", background: "rgba(0,240,255,0.03)", border: `1px solid ${C.border}`, borderRadius: 2, padding: "10px 14px", color: C.text, fontSize: 13, fontFamily: mono, transition: "all 0.2s", letterSpacing: "0.05em" }} />
             </HexFrame>
             <button style={btnPrimary} onClick={() => setStep(1)}>{"\u25B6"} INITIATE SCAN</button>
-            <p style={{ marginTop: 24, color: C.textDim, fontSize: 10, letterSpacing: "0.15em" }}>6 CAPABILITY VECTORS {"\u25B8"} 5 LEVELS EACH {"\u25B8"} ~3 MIN</p>
+            <p style={{ marginTop: 24, color: C.textDim, fontSize: 10, letterSpacing: "0.15em" }}>6 COMPETENCY VECTORS {"\u25B8"} 5 LEVELS EACH {"\u25B8"} ~3 MIN</p>
           </div>
         )}
 
